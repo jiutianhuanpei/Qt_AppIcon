@@ -7,6 +7,8 @@
 #include <QMessageBox>
 #include <QDir>
 #include <iostream>
+#include <QFile>
+#include "Tools/HBTools.h"
 
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
@@ -34,96 +36,51 @@ void Widget::on_btn_from_clicked()
 
     if (filePath.isEmpty()) {
 
-        QMessageBox::warning(this, "", "请先选择一张图片");
+        QMessageBox::warning(this, "", "请选择一张图片");
         return;
     }
-
 
     m_imgPath = filePath;
     QFileInfo info(filePath);
     ui->name_lbl->setText(info.fileName());
 
-    QDir dir(iconDir);
-    if (!dir.exists()) {
-        QDir().mkdir(iconDir);
-    }
-
-
 }
 
 void Widget::on_btn_to_clicked()
 {
-
     if (m_imgPath.isEmpty()) {
 
         QMessageBox::warning(this, "", "请先选择一张图片");
         return;
     }
 
-    QString path = QFileDialog::getExistingDirectory(this, "保存在这里", deskPath);
+    QString toPath = QFileDialog::getExistingDirectory(this, "请选择一个目录", deskPath);
+    if (toPath.isEmpty()) {
 
-    if (path.isEmpty()) {
-        QMessageBox::warning(this, "", "请选择保存的目录");
+        QMessageBox::warning(this, "", "请选择目标存放的目录");
         return;
     }
 
-    QString cmdStr = QString("mkdir %1").arg(iconDir);
-    system(cmdStr.toStdString().c_str());
+    QStringList list = HBTools::cmdStrListWithNums(QList<int>() << 16 << 32 << 64 << 128 << 256 << 512, m_imgPath, toPath);
 
-    QList<int> param;
-    param << 16 << 32 << 64 << 128 << 256 << 512;
-    QStringList list = cmdStrListWithSize(param);
+    qDebug() << list;
 
-    QFile file("tmp.sh");
-    file.open(QIODevice::ReadWrite);
+    for (int i = 0; i < list.count(); i++) {
 
-    QString text = "#1 /bin/sh\n";
-    text += list.join("\n").toStdString().c_str();
-
-    file.write(text.toStdString().c_str());
-
-    file.close();
-    system("chmod +x tmp.sh");
-    system("./tmp.sh");
-
-    cmdStr = QString("iconutil -c icns %1").arg(iconDir);
-
-    system(cmdStr.toStdString().c_str());
-
-    cmdStr = QString("cp logo.icns %1/logo.icns").arg(path);
-
-    system(cmdStr.toStdString().c_str());
-
-    cmdStr = QString("rm -rf tmp.sh %1 logo.icns").arg(iconDir);
-    system(cmdStr.toStdString().c_str());
-}
-
-
-QStringList Widget::cmdStrListWithSize(QList<int> sizeNums)
-{
-
-
-    QStringList list;
-
-    for (int i = 0; i < sizeNums.count(); i++) {
-
-        int num = sizeNums[i];
-
-        QStringList tmp = cmdStrWithNum(num);
-
-        list.append(tmp);
-
+        QString cmd = list[i];
+        system(cmd.toStdString().c_str());
     }
-    return list;
+
+    QString cmd = QString("cd %1").arg(toPath);
+    system(cmd.toStdString().c_str());
+
+    cmd = QString("iconutil -c icns %1").arg(toPath + "/logo.iconset");
+    system(cmd.toStdString().c_str());
+
+    cmd = QString("rm -rf %1/logo.iconset").arg(toPath);
+    system(cmd.toStdString().c_str());
 }
 
-QStringList Widget::cmdStrWithNum(int num)
-{
-    QString str1 = QString("sips -z %1 %1 %2 --out logo.iconset/icon_%1.png").arg(num).arg(m_imgPath);
-    QString str2 = QString("sips -z %1 %1 %2 --out logo.iconset/icon_%1@2x.png").arg(num).arg(m_imgPath);
-
-    return QStringList() << str1 << str2;
-}
 
 
 Widget::~Widget()

@@ -2,6 +2,7 @@
 #define WIDGET_H
 
 #include <QWidget>
+#include <QProcess>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -22,12 +23,11 @@ private:
     QString iconDir;
     QString m_imgPath;
 
+    QProcess *m_cmd;
+
 
     void on_btn_from_clicked();
     void on_btn_to_clicked();
-
-    QStringList cmdStrListWithSize(QList<int> sizeNums);
-    QStringList cmdStrWithNum(int num);
 
 };
 #endif // WIDGET_H
